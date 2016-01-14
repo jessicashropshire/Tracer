@@ -125,7 +125,7 @@ class TracerScene(t_api.HasTraits):
         
         # Trace new rays:
         engine = TracerEngine(self._asm)
-        params = engine.ray_tracer(self._source, 20000000, .05)[0]
+        params = engine.ray_tracer(self._source, 40, .05)[0]
         self._lines = show_rays(self._scene, engine.tree, self._esc)
     
     @staticmethod

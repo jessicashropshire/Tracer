@@ -22,14 +22,15 @@ class HasFrame(object):
     .. [1] John J. Craig, Introduction to Robotics, 3rd ed., 2005.
     """
     def __init__(self,  location=None,  rotation=None):
-        # default location and rotation:
+        # default location and rotation: What the location and rotations supposed to be
         if location is None:
             location = N.zeros(3)
         if rotation is None:
             rotation = N.eye(3)
-
+    # those creates an array with three elements 
         self._transform = N.zeros((4,4))
         self._transform[3,:] = N.r_[0, 0, 0, 1]
+        #that's the fourth row
         self.set_location(location)
         self.set_rotation(rotation)
         self._temp_frame = self._transform
@@ -39,7 +40,7 @@ class HasFrame(object):
 
     def get_location(self):
         return self._loc
-
+    # functions can be defined in a class
     def get_rotation(self):
         return self._rot
 

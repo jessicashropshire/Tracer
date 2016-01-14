@@ -26,14 +26,14 @@ class Surface(HasFrame):
         """
         HasFrame.__init__(self, location, rotation)
         self._geom = geometry
-        self._opt = optics
+        self._optics = optics
         
     def get_optics_manager(self):
         """
         Returns the optics-manager callable. May be useful for introspection.
         Note that it is a read-only attribute.
         """
-        return self._opt
+        return self._optics
     
     def get_geometry_manager(self):
         """
@@ -81,7 +81,7 @@ class Surface(HasFrame):
         a RayBundle object with the new bundle, with vertices on the surface
             and directions according to optics laws.
         """
-        return self._opt(self._geom, self._current_bundle, self._selected)
+        return self._optics(self._geom, self._current_bundle, self._selected)
     
     def done(self):
         """

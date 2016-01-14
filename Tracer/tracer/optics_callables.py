@@ -86,12 +86,19 @@ class AbsorptionAccountant(object):
         """Clear the memory of hits (best done before a new trace)."""
         self._absorbed = []
         self._hits = []
-    
-    def __call__(self, geometry, rays, selector):
-        self._absorbed.append(rays.get_energy()[selector]*self._opt._abs)
+    #def add_hits(self, geometry, rays, selector):
+    def __call__(self, geometry, rays, selector):# This function is not called in the final scripts Call function triggers if an instance of the class function is triggered/
+        # Seems that the instance is unecessaily called once in the function
+        #print('the instance is called') 
+        #print(len(self._absorbed),'_absorbed_call_')
+        #print(len(self._hits),'hits_all')
+        #print(rays.get_energy()[selector]*self._opt._abs)
+        self._absorbed.append(rays.get_energy()[selector]*self._opt._abs) 
         self._hits.append(geometry.get_intersection_points_global())
+        #print(len(self._absorbed),'_absorbed_call_')
+        #print(len(self._hits),'hits_all')
         return self._opt(geometry, rays, selector)
-    
+        
     def get_all_hits(self):
         """
         Aggregate all hits from all stages of tracing into joined arrays.
@@ -102,6 +109,10 @@ class AbsorptionAccountant(object):
         """
         if not len(self._absorbed):
             return N.array([]), N.array([]).reshape(3,0)
+        #print(self._absorbed,'_absorbed')
+        #print(self._hits,'_hits')
+        #for a in self._absorbed:
+            #print(a,'self.absorbed')
         
         return N.hstack([a for a in self._absorbed if len(a)]), \
             N.hstack([h for h in self._hits if h.shape[1]])
@@ -155,6 +166,7 @@ class DirectionAccountant(object):
             N.hstack([d for d in self._directions if d.shape[1]])
 
 class ReflectiveReceiver(AbsorptionAccountant):
+#class ReflectiveReceiver:
     """A wrapper around AbsorptionAccountant with a Reflective optics"""
     def __init__(self, absorptivity):
         AbsorptionAccountant.__init__(self, Reflective, absorptivity)

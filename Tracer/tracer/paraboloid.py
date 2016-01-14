@@ -58,6 +58,8 @@ class Paraboloid(QuadricGM):
         """
         # Transform the the direction and position of the rays temporarily into the
         # frame of the paraboloid for calculations
+	#print(self._working_frame[:3,:3], 'working_frame',ray_bundle.get_directions(),'ray_bundle_get directions')
+	dir(ray_bundle)
         d = N.dot(self._working_frame[:3,:3].T, ray_bundle.get_directions())
         v = N.dot(N.linalg.inv(self._working_frame), 
             N.vstack((ray_bundle.get_vertices(), N.ones(d.shape[1]))))[:3]
@@ -109,7 +111,7 @@ class ParabolicDishGM(Paraboloid):
         
         coords = N.concatenate((coords, N.ones((2,1,coords.shape[2]))), axis=1)
         local_z = N.sum(N.linalg.inv(self._working_frame)[None,2,:,None]*coords, axis=1)
-
+	#working frame, a 4*4 homogeneous transform array representing the surface frame in the global coordinates. 
         under_cut = (local_z <= self._h) & (local_z >= 0)
         hitting = under_cut & positive
 
@@ -163,7 +165,87 @@ class HexagonalParabolicDishGM(Paraboloid):
             dish.
         focal_length - distance of the focal point from the origin.
         """
-        par_param = 2*math.sqrt(focal_length) # [2]
+        par_param = 2*N.sqrt(focal_length) # [2]
+        Paraboloid.__init__(self, par_param, par_param)
+        self._R = diameter/2.
+    
+    def _select_coords(self, coords, prm):
+        """
+        Choose between two intersection points on a quadric surface.
+        This implementation extends QuadricGM's behaviour by not choosing
+        intersections outside the hexagon aperture.
+        
+        Arguments:
+        coords - a 2 by 3 by n array whose each column is the global coordinates
+            of one intersection point of a ray with the sphere. Why 2 by three here, doesn't concatenate with 
+        prm - the corresponding parametric location on the ray where the
+            intersection occurs.
+
+        Returns:
+        The index of the selected intersection, or None if neither will do.
+        """
+        select = QuadricGM._select_coords(self, coords, prm) # defaults
+
+        coords = N.concatenate((coords, N.ones((2,1,coords.shape[2]))), axis=1) # n rays two clusters of row matrices with n elements of one concatenated horizontally 2*4*n ats.
+        local = N.sum(N.linalg.inv(self._working_frame)[None,:2,:,None] * \
+            coords[:,None,:,:], axis=2)
+        #working frame, a 4*4 homogeneous transform array representing the surface frame in the global coordinates. This is an elementwise multiplication, interesting. 
+	#2*4 and three extra layers. Imitation of a dot product. Now the coordinates transferred back to the local ones.
+        abs_x = abs(local[:,0,:])
+        abs_y = abs(local[:,1,:])
+        outside = abs_x > N.sqrt(3)*self._R/2.
+        outside |= abs_y > self._R - N.tan(N.pi/6.)*abs_x
+        inside = (~outside) & (prm > 1e-9)
+        
+        select[~N.logical_or(*inside)] = N.nan
+        one_hit = N.logical_xor(*inside)
+        select[one_hit] = N.nonzero(inside.T[one_hit,:])[1]
+
+        return select
+    def mesh(self, resolution=None):
+        """
+        Represent the surface as a mesh in local coordinates. Uses polar
+        bins, i.e. the points are equally distributed by angle and radius,
+        not by x,y.
+        
+        Arguments:
+        resolution - in points per unit length (so the number of points 
+            returned is O(A*resolution**2) for area A)
+        
+        Returns:
+        x, y, z - each a 2D array holding in its (i,j) cell the x, y, and z
+            coordinate (respectively) of point (i,j) in the mesh.
+        """
+        if resolution is None:
+            #resolution = 2*N.pi*self._R / 40
+            resolution = 40.
+        # Generate a circular-edge mesh using polar coordinates.
+        r_end = self._R*(1.+1./resolution)
+        rs = N.r_[0:r_end:self._R/resolution]
+        # Make the circumferential points at the requested resolution.
+        ang_end = 2*N.pi*(1.+1./(self._R*resolution))
+        angs = N.r_[0:ang_end:2*N.pi/(self._R*resolution)]
+
+        x = N.outer(rs, N.cos(angs))
+        y = N.outer(rs, N.sin(angs))
+        z = self.a*x**2 + self.b*y**2
+
+        return x, y, z
+class OctagonalParabolicDishGM(Paraboloid):
+    """
+    A paraboloid that marks rays outside a regular hexagon perimeter as
+    missing. The parameters for the paraboloid's equation are determined
+    from the focal length. The hexagon is oriented with two parallel to the
+    Y axis.
+    """    
+    def __init__(self, diameter, focal_length):
+        """
+        Arguments:
+        diameter - of the circle bounding the regular hexagonal aperture of the
+            dish.
+        focal_length - distance of the focal point from the origin.
+        """
+        par_param = 2*N.sqrt(focal_length) # [2]
         Paraboloid.__init__(self, par_param, par_param)
         self._R = diameter/2.
     
@@ -190,8 +272,10 @@ class HexagonalParabolicDishGM(Paraboloid):
         
         abs_x = abs(local[:,0,:])
         abs_y = abs(local[:,1,:])
-        outside = abs_x > math.sqrt(3)*self._R/2.
-        outside |= abs_y > self._R - math.tan(N.pi/6.)*abs_x
+	a=abs_x > N.cos(N.pi/8.)*self._R
+	b=abs_y > N.cos(N.pi/8.)*self._R
+        outside = a | b
+        outside |= abs_y > self._R*N.cos(N.pi/8.)- N.tan(N.pi/4.)*(abs_x-self._R*N.sin(N.pi/8.))
         inside = (~outside) & (prm > 1e-9)
         
         select[~N.logical_or(*inside)] = N.nan
@@ -199,6 +283,36 @@ class HexagonalParabolicDishGM(Paraboloid):
         select[one_hit] = N.nonzero(inside.T[one_hit,:])[1]
 
         return select
+    def mesh(self, resolution=None):
+        """
+        Represent the surface as a mesh in local coordinates. Uses polar
+        bins, i.e. the points are equally distributed by angle and radius,
+        not by x,y.
+        
+        Arguments:
+        resolution - in points per unit length (so the number of points 
+            returned is O(A*resolution**2) for area A)
+        
+        Returns:
+        x, y, z - each a 2D array holding in its (i,j) cell the x, y, and z
+            coordinate (respectively) of point (i,j) in the mesh.
+	the neshing gives a circular shape for the parabolic_dish
+        """
+        if resolution is None:
+            #resolution = 2*N.pi*self._R / 40
+            resolution = 40.
+        # Generate a circular-edge mesh using polar coordinates.
+        r_end = self._R*(1.+1./resolution)
+        rs = N.r_[0:r_end:self._R/resolution]
+        # Make the circumferential points at the requested resolution.
+        ang_end = 2*N.pi*(1.+1./(self._R*resolution))
+        angs = N.r_[0:ang_end:2*N.pi/(self._R*resolution)]
+
+        x = N.outer(rs, N.cos(angs))
+        y = N.outer(rs, N.sin(angs))
+        z = self.a*x**2 + self.b*y**2
+
+        return x, y, z
 
 class RectangularParabolicDishGM(Paraboloid):
     """

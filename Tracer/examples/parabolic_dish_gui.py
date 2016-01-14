@@ -67,7 +67,7 @@ class DishScene(TracerScene):
             tui.Item('refl', editor=tui.TextEditor(evaluate=float, auto_set=False))))
 
 
-if __name__ == '__main__':
-    scene = DishScene()
-    scene.configure_traits()
+
+scene = DishScene()
+scene.configure_traits()
 

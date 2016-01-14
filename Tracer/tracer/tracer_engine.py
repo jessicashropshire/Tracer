@@ -171,6 +171,7 @@ class TracerEngine():
                 new_surfs_relevancy.append(surf_relev)
             
             bund = concatenate_rays(outg)
+            #print(bund,'bund')
             if tree:
                 # stores parent branch for purposes of ray tracking
                 record = concatenate_rays(record)

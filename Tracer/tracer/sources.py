@@ -3,7 +3,7 @@ This module contains functions to create some frequently-used light sources.
 Each function returns a RayBundle instance that represents the distribution of
 rays expected from that source.
 
-References:
+References:from 
 .. [1] Monte Carlo Ray Tracing, Siggraph 2003 Course 44
 """
 
@@ -27,10 +27,16 @@ def single_ray_source(position, direction, flux=None):
     A Raybundle object with the corresponding characteristics.
     '''
     directions = N.tile(direction[:,None],1)
+    # this give an colume array with each element in []
     directions /= N.sqrt(N.sum(directions**2, axis=0))
+    # the direction is given in unit vector
     singray = RayBundle(vertices = position, directions = directions)
+    # now the singray is of class ray bundle with defined position and direction
     singray.set_energy(flux*N.ones(1))
+    # the flux has to be defined as the None type is cannot be mathematically operated together with 'float' 
     return singray
+    # the return here deals with the definition there's not too much involved.
+    #Notice the inside definition is warpped_in and can't be called
 
 def pillbox_sunshape_directions(num_rays, ang_range):
     """
@@ -49,12 +55,20 @@ def pillbox_sunshape_directions(num_rays, ang_range):
     """
     # Diffuse divergence from +Z:
     # development based on eq. 2.12  from [1]
-    xi1 = random.uniform(high=2.*N.pi, size=num_rays)
+    xi1 = random.uniform(high=2.*N.pi, size=num_rays)# linear, so the heat flux is uniform
+    # default random.uniform function low=0. It creates an array with float numbers
     xi2 = random.uniform(size=num_rays)
     theta = N.arcsin(N.sin(ang_range)*N.sqrt(xi2))
+    # function N.arcsin gives the inverse sine function
+    # excellent idea!!! the sqaure root of a random distribution gives a parabolic function!!
+    # Therefore there can be a unifrom distution in a circle, uniform in terms of sin component,
+    # theta is an angle in radians. 
 
     sin_th = N.sin(theta)
+    
     a = N.vstack((N.cos(xi1)*sin_th, N.sin(xi1)*sin_th , N.cos(theta)))
+    #a = N.vstack((N.cos(xi1)*N.cos(theta), N.sin(xi1)*N.cos(theta) , N.sin(theta)))
+    # stack the array in a vertical order. An array of directional unit vector
 
     return a
 
@@ -111,12 +125,13 @@ def edge_rays_directions(num_rays, ang_range):
     xi1 = random.uniform(high=2.*N.pi, size=num_rays)
     sin_th = N.ones(num_rays)*N.sin(ang_range)
     a = N.vstack((N.cos(xi1)*sin_th, N.sin(xi1)*sin_th , N.cos(N.ones(num_rays)*ang_range)))
+    # it is the same definition as above only the edge is shown this time, what is it used for?
 
     return a
 
 def solar_disk_bundle(num_rays,  center,  direction,  radius, ang_range, flux=None, radius_in=0., angular_span=[0.,2.*N.pi]):
     """
-    Generates a ray bundle emanating from a disk, with each surface element of 
+    Generates a ray bundle emanating from a disk, or more precisely the receiver position, with each surface element of 
     the disk having the same ray density. The rays all point at directions uniformly 
     distributed between a given angle range from a given direction.
     Setting of the bundle's energy is left to the caller.
@@ -127,7 +142,7 @@ def solar_disk_bundle(num_rays,  center,  direction,  radius, ang_range, flux=No
     direction - a 1D 3-array with the unit average direction vector for the
         bundle.
     radius - of the disk.
-    ang_range - in radians, the maximum deviation from <direction>.
+    ang_range - in radians, the maximum deviation from <direction>.Coz the numpy sin function deals with radians. 
     flux - if not None, the ray bundle's energy is set such that each ray has
         an equal amount of energy, and the total energy is flux*pi*radius**2
     
@@ -137,26 +152,33 @@ def solar_disk_bundle(num_rays,  center,  direction,  radius, ang_range, flux=No
 
 	# FIXME why should 'center' be a column vector... that's just annoying.
 
-    radius = float(radius)
+    radius = float(radius*1.5)
     radius_in = float(radius_in)
+    # what is radius_in?
     a = pillbox_sunshape_directions(num_rays, ang_range)
+    #buie_sunshape(num_rays, center, direction, radius, CSR, flux=None):
+    # now we have an array of light pointing to the z axis. a is just specifying the direction  of the ray bundle
         
-    # Rotate to a frame in which <direction> is Z:
+    # Rotate to a frame in which <direction> is Z: perp_rot is essentially a transformation matrix where the coordination system is fitting into the direction of bundle
     perp_rot = rotation_to_z(direction)
-    directions = N.sum(perp_rot[...,None] * a[None,...], axis=1)
+    # directions = N.sum(perp_rot[...,None] * a[None,...], axis=1)
+    directions = N.dot(perp_rot,a)
+    #print('directions',directions)
     # Locations:
     # See [1]
-    xi1 = random.uniform(size=num_rays)
-    thetas = random.uniform(low=angular_span[0], high=angular_span[1], size=num_rays)
+    xi1 = random.uniform(size=num_rays)# num_rays number of random number from 0 to 1
+    thetas = random.uniform(low=angular_span[0], high=angular_span[1], size=num_rays) # the 
     rs = N.sqrt(radius_in**2.+xi1*(radius**2.-radius_in**2.))
     xs = rs * N.cos(thetas)
+     # number of hits times a random angle, this is a curious angle, where does it come from
     ys = rs * N.sin(thetas)
 
     # Rotate locations to the plane defined by <direction>:
     vertices_local = N.vstack((xs, ys, N.zeros(num_rays)))
-    vertices_global = N.dot(perp_rot, vertices_local)
-
-    rayb = RayBundle(vertices=vertices_global + center, directions=directions)
+    vertices_global = N.dot(perp_rot, vertices_local) # this is creating a flat disk at the centre of the solar reflector
+    #print(directions,'directions') the number of rays gernated is exactly as specified
+    rayb = RayBundle(vertices=vertices_global + center, directions=directions) 
+    # random point on the dish, spill box defined directions
     if flux != None:
         rayb.set_energy(N.pi*(radius**2.-radius_in**2.)/num_rays*flux*N.ones(num_rays))
     return rayb
@@ -167,7 +189,9 @@ def solar_rect_bundle(num_rays, center, direction, x, y, ang_range, flux=None):
 
     # Rotate to a frame in which <direction> is Z:
     perp_rot = rotation_to_z(direction)
+    #print('perp_rot', perp_rot)
     directions = N.sum(perp_rot[...,None] * a[None,...], axis=1)
+    #print('directions',directions)
 
     xs = random.uniform(low=-x/2., high=x/2., size=num_rays)
     ys = random.uniform(low=-y/2., high=y/2., size=num_rays)
@@ -201,7 +225,7 @@ def edge_rays_bundle(num_rays,  center,  direction,  radius, ang_range, flux=Non
     xi1 = random.uniform(size=num_rays)
     thetas = random.uniform(high=2.*N.pi, size=num_rays)
     rs = N.sqrt(radius_in**2.+xi1*(radius**2.-radius_in**2.))
-    xs = rs * N.cos(thetas)
+    xs = rs * N.cos(thetas) # number of hits times a random angle, this is a curious angle, where does it come from
     ys = rs * N.sin(thetas)
 
     # Rotate locations to the plane defined by <direction>:

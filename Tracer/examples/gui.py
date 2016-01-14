@@ -53,7 +53,7 @@ class ExampleScene(TracerScene):
             height=400, width=300, show_label=False),
         tui.HGroup('-', 'source_y', 'source_z'))
 
-if __name__ == '__main__':
-    scene = ExampleScene()
-    scene.configure_traits()
+
+scene = ExampleScene()
+scene.configure_traits()
 

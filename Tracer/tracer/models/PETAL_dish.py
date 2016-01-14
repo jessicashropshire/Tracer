@@ -10,9 +10,10 @@ from ..paraboloid import HexagonalParabolicDishGM
 from .homogenized_local_receiver import HomogenizedLocalReceiver
 
 class PETAL(HomogenizedLocalReceiver):
-    def __init__(self, diameter, focal_length, dish_opt_eff,\
-        receiver_pos, receiver_side, homogenizer_depth, homog_opt_eff,\
+    def __init__(self, diameter, focal_length,\
+        receiver_pos, receiver_side, homogenizer_depth, homog_opt_eff, dish_opt_eff,\
         receiver_aspect=1.):
+  # dish = PETAL(1., self.f, self.H, self.receiver_size, self.w, homog_opt_eff=0.9,dish_opt_eff=0.9, self.receiver_aspect=1)
         """
         Arguments:
         diameter - of the circle bounding the hexagonal aperture. 

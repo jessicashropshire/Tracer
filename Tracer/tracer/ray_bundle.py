@@ -3,7 +3,7 @@
 import numpy as N
 import types
 
-class RayBundle:
+class RayBundle:# don't need bracket object, how to create a ray bundle in the first place
     """
     Contains information about a ray bundle, using equal-length arrays, the
     length of which correspond to the number of rays in a bundle. Each array
@@ -39,7 +39,7 @@ class RayBundle:
         the number of rays, then for each of the arguments, .shape[-1] == n.
         
         Arguments:
-        vertices - each column is the (x,y,z) coordinets of a ray's vertex.
+        vertices - each column is the (x,y,z) coordinets of a ray's vertex.Assume the starting point ats
         directions - each column is the unit vector composed of the direction
             cosines of each ray.
         energy - each cell has the energy carried by the corresponding ray.
@@ -52,15 +52,16 @@ class RayBundle:
             value whose shape[-1] == n.
         """
         base_vals = {
-            'vertices': vertices,
+            'vertices': vertices, # what are the vertices for the ray?
             'directions': directions,
             'energy': energy,
             'parents': parents,
             'ref_index': ref_index}
-        base_vals.update(kwds)
+
+        base_vals.update(kwds) # calls the ** arguments 
         
         self._check_attr = [] # Attrs to look for when concatenating bundles
-        for n, v in base_vals.iteritems():
+        for n, v in base_vals.iteritems():# iteritems and updates are built-in attibutes to dictionaries
             self._create_property(n, v)
     
     def _create_property(self, propname, init_val):
@@ -72,7 +73,7 @@ class RayBundle:
         Creates the method get_<propname>(self, selector=None). If selector is
         given, it will return only the rays whose index is selected. Also
         creates set_<propname>(self, value, selector=None) which sets either
-        the value for all rays or just for the selected rays.
+        the value for all rays or just for the selected rays. Get and set functions are paired.
         
         Arguments:
         propname - a string, should be a valid Python identifier.
@@ -107,6 +108,7 @@ class RayBundle:
         bundle.
         """
         return ('_' + propname in self._check_attr)
+	# keyword in returns a boolean value
     
     def get_num_rays(self):
         """
@@ -114,6 +116,7 @@ class RayBundle:
         attributes were set (vertices, directions).
         """
         return self._vertices.shape[1]
+	#The only time shape appears in the actual text command. gives the number of columns
     
     def inherit(self, selector=N.s_[:], vertices=None, direction=None, energy=None,
         parents=None, ref_index=None, **kwds):
@@ -208,7 +211,10 @@ def concatenate_rays(bundles):
         return RayBundle.empty_bund()
     
     newbund = RayBundle()
-    
+    '''	
+    for b in bundles:
+	print(b.get_directions(), 'bundles')
+    '''
     for attr in bundles[0]._check_attr:
         if hasattr(bundles[0], attr):
             # The new bundle only starts with the basic set, here we equalize:
@@ -217,8 +223,7 @@ def concatenate_rays(bundles):
             
             # This is the actual concatenation:
             getter = 'get' + attr
-            newbund.__dict__['set' + attr](N.hstack(
-                [b.__dict__[getter]() for b in bundles]))
-    
+            newbund.__dict__['set' + attr](N.hstack([b.__dict__[getter]() for b in bundles]))
+    	    
     return newbund
 

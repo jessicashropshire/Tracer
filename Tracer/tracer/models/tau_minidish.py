@@ -26,6 +26,7 @@ class MiniDish(HomogenizedLocalReceiver):
         """
         Arguments:
         diameter, focal_length - of the parabolic dish
+        The diameter is the diameter of the projected circle from the parabola. 
         dish_opt_eff - the optical efficiency of the dish
         receiver_pos - the distance along the optical axis from the dish to the
             receiver's end surface - the PV panel (should be about the focal 
@@ -34,9 +35,11 @@ class MiniDish(HomogenizedLocalReceiver):
         homogenizer_depth - the homogenizer has base dimensions to fit the PV
             square, and this height.
         homog_opt_eff - the optical efficiency of each mirror in the homogenizer
+	Note here we won't be using the homogenizer
         """
         dish_surf = Surface(ParabolicDishGM(diameter, focal_length), 
             opt.Reflective(1 - dish_opt_eff))
+        # defines the surface of the parabolic dish, all the parameters of the dish is feed directly into this function. 
         receiver_dims = (receiver_side, receiver_side*receiver_aspect)
         HomogenizedLocalReceiver.__init__(self, dish_surf, receiver_pos, \
             receiver_dims, homogenizer_depth, homog_opt_eff)
@@ -59,10 +62,11 @@ class MiniDish(HomogenizedLocalReceiver):
 def standard_minidish_measures(diameter, concentration, virt_sources):
     """
     Calculate the dimensions in a dish with 45 deg. rim angle, using
-    dimensioning rules from [2].
+    dimensioning rules from [2]. The 45 degree rim angle gives the highest concentration ratio of 45,000 which is generally 
+    desired for less thermal loss. 
     
     Arguments:
-    diameter - of the dish aperture.
+    diameter - of the dish aperture. what aperture
     concentrations - ratio of dish aperture to receiver aperture.
     virt_sources - Virtual sources seen by the homogenizer on top of the one
         real source. Note this can't exceed (diameter/W - 1.) for homogenizer
@@ -70,7 +74,9 @@ def standard_minidish_measures(diameter, concentration, virt_sources):
     
     Returns:
     f, W, H - the focal length, homogenizer width and receiver distance from
-        focal point that were used for the dish.
+        focal point that were used for the dish. this distnace seems to be carefully defined from calculations. H is determined
+    by the diamter the focal length, the homgnizer width and the number of virt_sources.
+    The virt_sources seems to be a natural number. 
     """
     f = diameter/4./(sqrt(2) - 1)
     W = diameter/2. * sqrt(pi/concentration)
